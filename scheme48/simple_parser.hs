@@ -37,7 +37,9 @@ primitives = [
               ("remainder", numericBinOp rem),
               ("string?", isString),
               ("symbol?", isSymbol),
-              ("number?", isNumber)
+              ("number?", isNumber),
+              ("symbol->string", symbolToString),
+              ("string->symbol", stringToSymbol)
              ]
 
 isString :: [LispVal] -> LispVal
@@ -52,9 +54,14 @@ isSymbol :: [LispVal] -> LispVal
 isSymbol ((Atom _):_) = Bool True
 isSymbol _ = Bool False
 
+symbolToString :: [LispVal] -> LispVal
+symbolToString ((Atom s):_) = String s
+symbolToString _ = Bool False
 
+stringToSymbol :: [LispVal] -> LispVal
+stringToSymbol ((String s):_) = Atom s
+stringToSymbol _ = Bool False
 
---predicateOp :: 
 
 numericBinOp :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinOp op params = Number $ foldl1 op $ map unpackNum params
