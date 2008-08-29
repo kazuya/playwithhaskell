@@ -32,6 +32,21 @@ apply fun args = maybe (throwError $ NotFunction "Unrecognized primitive functio
 
 primitives :: [(String, [LispVal] -> ThrowsError LispVal)]
 primitives = [
+              ("=", numBoolMultiOp (==)),
+              ("<", numBoolMultiOp (<)),
+              (">", numBoolMultiOp (>)),
+--              ("/=", numBoolBinOp (/=)),
+              (">=", numBoolMultiOp (>=)),
+              ("<=", numBoolMultiOp (<=)),
+--               ("&&", boolBoolBinOp (&&)),
+--               ("||", boolBoolBinOp (||)),
+              ("and", boolBoolMultiOp (&&)),
+              ("or", boolBoolMultiOp (||)),
+              ("string=?", strBoolBinOp (==)),
+              ("string<?", strBoolBinOp (<)),
+              ("string>?", strBoolBinOp (>)),
+              ("string<=?", strBoolBinOp (<=)),
+              ("string=>?", strBoolBinOp (>=)),
               ("+", numericBinOp (+)),
               ("-", numericBinOp (-)),              
               ("*", numericBinOp (*)),
@@ -78,6 +93,45 @@ unpackNum (String n) = let parsed = reads n in
                            else return $ fst $ parsed !! 0
 unpackNum (List [n]) = unpackNum n
 unpackNum notNum = throwError $ TypeMismatch "number" notNum
+
+
+-- I need to learn existential type to do this kind of things:
+-- boolMultiOp :: (LispVal -> ThrowsError b) -> (a -> a -> Bool) -> a -> [LispVal] -> ThrowsError LispVal
+-- boolMultiOp unpacker op params = do ps <- mapM unpacker params
+--                                     return . Bool . foldl (&&) (zipWith op ps (tail ps))
+
+numBoolMultiOp :: (Integer -> Integer -> Bool) -> [LispVal] -> ThrowsError LispVal
+numBoolMultiOp op params = do ps <- mapM unpackNum params
+                              return $ Bool  (foldl1 (&&) (zipWith op ps (tail ps)))
+
+boolBoolMultiOp :: (Bool -> Bool -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolBoolMultiOp op params = do ps <- mapM unpackBool params
+                               return $ Bool  (foldl1 (&&) (zipWith op ps (tail ps)))
+
+-- numBoolBinop :: (Integer -> Integer -> Bool) -> [LispVal] -> ThrowsError LispVal
+-- numBoolBinop op singleVal@[_] = throwError $ (NumArgs 2 singleVal)
+-- numBoolBinOp op params = mapM unpackNum params >>= return . Bool . foldl1 op
+
+-- boolBoolBinop :: (Bool -> Bool -> Bool) -> [LispVal] -> ThrowsError LispVal
+-- boolBoolBinop op singleVal@[_] = throwError $ (NumArgs 2 singleVal)
+-- boolBoolBinOp op params = mapM unpackBool params >>= return . Bool . foldl1 op
+
+unpackBool :: LispVal -> ThrowsError Bool
+unpackBool (Bool b) = return b
+unpackBool notBool = throwError $ TypeMismatch "boolean" notBool
+
+boolBinOp :: (Bool -> Bool -> Bool) -> [LispVal] -> ThrowsError LispVal
+boolBinOp op params = mapM unpackBool params >>= return . Bool . foldl1 op
+
+strBoolBinOp :: (String -> String -> Bool) -> [LispVal] -> ThrowsError LispVal
+strBoolBinOp op [p1,p2] = do s1 <- unpackString p1
+                             s2 <- unpackString p2
+                             return $ Bool (op s1 s2)
+strBoolBinOp op params = throwError $ (NumArgs 2 params)
+
+unpackString :: LispVal -> ThrowsError String
+unpackString (String s) = return s
+unpackString notString = throwError $ TypeMismatch "string" notString
 
 instance Show LispVal where show = showVal
 
