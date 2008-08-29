@@ -63,8 +63,30 @@ primitives = [
               ("symbol?", isSymbol),
               ("number?", isNumber),
               ("symbol->string", symbolToString),
-              ("string->symbol", stringToSymbol)
+              ("string->symbol", stringToSymbol),
+              ("car", car),
+              ("cdr", cdr),
+              ("cons", cons)
              ]
+
+car :: [LispVal] -> ThrowsError LispVal
+car [List (x:xs)] = return x
+car [DottedList (x:xs) _] = return x
+car [badArg] = throwError $ TypeMismatch "pair" badArg
+car badArgList = throwError $ NumArgs 1 badArgList
+
+cdr :: [LispVal] -> ThrowsError LispVal
+cdr [List (x:xs)] = return $ List xs
+cdr [DottedList [x] t] = return t
+cdr [DottedList (_:xs) t] = return $ DottedList xs t
+cdr [badArg] = throwError $ TypeMismatch "pair" badArg
+cdr badArgList = throwError $ NumArgs 1 badArgList
+
+cons :: [LispVal] -> ThrowsError LispVal
+cons [x, List ys] = return $ List (x:ys)
+cons [x, DottedList ys t] = return $ DottedList (x:ys) t
+cons [x, y] = return $ DottedList [x] y
+cons badArgList = throwError $ NumArgs 2 badArgList
 
 isString :: [LispVal] -> ThrowsError LispVal
 isString ((String _):_) = return $ Bool True
