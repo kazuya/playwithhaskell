@@ -66,7 +66,8 @@ primitives = [
               ("string->symbol", stringToSymbol),
               ("car", car),
               ("cdr", cdr),
-              ("cons", cons)
+              ("cons", cons),
+              ("eqv?", eqv)
              ]
 
 car :: [LispVal] -> ThrowsError LispVal
@@ -87,6 +88,19 @@ cons [x, List ys] = return $ List (x:ys)
 cons [x, DottedList ys t] = return $ DottedList (x:ys) t
 cons [x, y] = return $ DottedList [x] y
 cons badArgList = throwError $ NumArgs 2 badArgList
+
+-- hmm, thr tutorial's definition of eqv? fails to follow r5rs?
+-- need to revisit when variable binding is introduced.
+eqv :: [LispVal] -> ThrowsError LispVal
+eqv [Bool x, Bool y] = return $ Bool (x == y)
+eqv [Atom s1, Atom s2] = return $ Bool (s1 == s2)
+eqv [Number n1, Number n2] = return $ Bool (n1 == n2)
+eqv [Character c1, Character c2] = return $ Bool (c1 == c2)
+eqv [List [], List []] = return $ Bool True
+eqv [_, _] = return $ Bool False
+eqv badArgList = throwError $ NumArgs 2 badArgList
+
+
 
 isString :: [LispVal] -> ThrowsError LispVal
 isString ((String _):_) = return $ Bool True
