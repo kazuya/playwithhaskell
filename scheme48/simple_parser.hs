@@ -20,7 +20,10 @@ data LispVal = Atom String
 eval :: LispVal -> ThrowsError LispVal
 eval val@(String _) = return val
 eval val@(Number _) = return val
+eval val@(Float _) = return val
 eval val@(Bool _) = return val
+eval val@(Character _) = return val
+eval val@(Vector _) = return val
 eval (List [Atom "if", pred, conseq, alt]) =
     do result <- eval pred
        case result of
@@ -67,7 +70,8 @@ primitives = [
               ("car", car),
               ("cdr", cdr),
               ("cons", cons),
-              ("eqv?", eqv)
+              ("eqv?", eqv),
+              ("equal?", equal)
              ]
 
 car :: [LispVal] -> ThrowsError LispVal
@@ -89,7 +93,7 @@ cons [x, DottedList ys t] = return $ DottedList (x:ys) t
 cons [x, y] = return $ DottedList [x] y
 cons badArgList = throwError $ NumArgs 2 badArgList
 
--- hmm, thr tutorial's definition of eqv? fails to follow r5rs?
+-- hmm, the tutorial's definition of eqv? fails to follow r5rs?
 -- need to revisit when variable binding is introduced.
 eqv :: [LispVal] -> ThrowsError LispVal
 eqv [Bool x, Bool y] = return $ Bool (x == y)
@@ -97,10 +101,27 @@ eqv [Atom s1, Atom s2] = return $ Bool (s1 == s2)
 eqv [Number n1, Number n2] = return $ Bool (n1 == n2)
 eqv [Character c1, Character c2] = return $ Bool (c1 == c2)
 eqv [List [], List []] = return $ Bool True
+-- there should be cases for pairs, vectors, functions and so on, but that is saved until variable binding is introduced
 eqv [_, _] = return $ Bool False
 eqv badArgList = throwError $ NumArgs 2 badArgList
 
+-- again, equal? from the tutorial coerces non-numeric types such as
+-- string into number, but I cannot such a feature in r5rs. Maybe I am
+-- wrong.
+equal :: [LispVal] -> ThrowsError LispVal
+equal [List badArgList1@(x:xs), List badArgList2@(y:ys)]
+    = do b1 <- equal [x,y]
+         b2 <- equal [List xs, List ys]
+         case (b1, b2) of
+                    (Bool True, Bool True) -> return $ Bool True
+                    (Bool _, Bool _) -> return $ Bool False
+                    (_, _) -> throwError $ TypeMismatch "same type" $ List $ badArgList1++badArgList2
+equal [Vector v1, Vector v2] 
+    = do bs <- mapM (\(e1, e2) -> equal [e1, e2]) $ zip (elems v1) (elems v2)
+         boolBoolMultiOp (&&) bs
 
+equal [x, y] = eqv [x,y]
+equal badArgList = throwError $ NumArgs 2 badArgList
 
 isString :: [LispVal] -> ThrowsError LispVal
 isString ((String _):_) = return $ Bool True
@@ -185,6 +206,7 @@ showVal (Bool True) = "#t"
 showVal (Bool False) = "#f"
 showVal (List contents) = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
+showVal (Vector array) = "#(" ++ (unwordsList $ elems array) ++ ")"
 showVal contents = show contents
 
 unwordsList :: [LispVal] -> String
@@ -195,7 +217,7 @@ parseVector = do
   string "#("
   List l <- parseList
   char ')'
-  return $ Vector (array (1, length l) $ zip [1 .. length l] l)
+  return $ Vector (listArray (1, length l) l)
 
 parseList :: Parser LispVal
 parseList = liftM List $ sepBy parseExpr spaces
@@ -309,8 +331,8 @@ parseExpr = try parseCharacter
             <|> try parseUnquotedSplicing
             <|> try parseUnquoted
             <|> try parseVector
-            <|> parseString
-            <|> parseAtom
+            <|> try parseString
+            <|> try parseAtom
             <|> do char '('
                    x <- (try parseList) <|> parseDottedList
                    char ')'
