@@ -30,6 +30,7 @@ eval (List [Atom "if", pred, conseq, alt]) =
        case result of
          Bool False -> eval alt
          otherwise -> eval conseq
+eval (List (Atom "begin":cs)) = begin $ List cs
 eval (List (Atom "cond":cs)) = evalCond cs
     where
       evalCondPred p
