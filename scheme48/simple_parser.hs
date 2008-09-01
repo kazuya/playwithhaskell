@@ -5,6 +5,7 @@ import Control.Monad
 import Control.Monad.Error
 import Numeric
 import Data.Array
+import Data.List
 
 data LispVal = Atom String
              | List [LispVal]
@@ -29,9 +30,24 @@ eval (List [Atom "if", pred, conseq, alt]) =
        case result of
          Bool False -> eval alt
          otherwise -> eval conseq
+eval (List (Atom "cond":cs)) = evalCond cs
+    where
+      evalCondPred p
+          = case p of
+              Atom "else" -> return $ Bool True
+              otherwise -> eval p
+      evalCond ((List (pred:body)):cs)
+          = do result <- evalCondPred pred
+               case result of
+                 Bool True -> begin $ List body
+                 otherwise -> evalCond cs
+      evalCond _ = throwError $ BadSpecialForm "no matching clause for cond" (List cs)
 eval (List [Atom "quote", val]) = return val
 eval (List (Atom fun : args)) = mapM eval args >>= apply fun
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+
+begin (List [e]) = eval e
+begin (List (e:es)) = eval e >> (begin $ List es)
 
 apply :: String -> [LispVal] -> ThrowsError LispVal
 apply fun args = maybe (throwError $ NotFunction "Unrecognized primitive function args" fun)
