@@ -43,9 +43,25 @@ eval (List (Atom "cond":cs)) = evalCond cs
                  Bool True -> begin $ List body
                  otherwise -> evalCond cs
       evalCond _ = throwError $ BadSpecialForm "no matching clause for cond" (List cs)
+eval (List (Atom "case":key:clauses))
+     = do evaled_key <- eval key
+          let clause = find (matchCaseHead evaled_key) clauses
+          case clause of
+            Nothing -> throwError $ BadSpecialForm "no matching clause for case" (List clauses)
+            Just (List (head:body)) -> begin $ List body
+              
 eval (List [Atom "quote", val]) = return val
 eval (List (Atom fun : args)) = mapM eval args >>= apply fun
 eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+
+matchCaseHead key (List ((List head):_)) = any (\d -> eqv' [key, d]) head
+matchCaseHead _ (List (Atom "else":_)) = True
+
+--findM :: (Monad m) => (a -> m Bool) -> [a] -> m Maybe a
+findM pred [] = return $ Nothing
+findM pred (x:xs) = do b <- pred x
+                       if b then return (Just x) else findM pred xs
+
 
 begin (List [e]) = eval e
 begin (List (e:es)) = eval e >> (begin $ List es)
@@ -112,14 +128,17 @@ cons badArgList = throwError $ NumArgs 2 badArgList
 
 -- hmm, the tutorial's definition of eqv? fails to follow r5rs?
 -- need to revisit when variable binding is introduced.
+eqv' :: [LispVal] -> Bool
+eqv' [Bool x, Bool y] = x == y
+eqv' [Atom s1, Atom s2] = s1 == s2
+eqv' [Number n1, Number n2] = n1 == n2
+eqv' [Character c1, Character c2] = c1 == c2
+eqv' [List [], List []] = True
+eqv' [_, _] = False
+
 eqv :: [LispVal] -> ThrowsError LispVal
-eqv [Bool x, Bool y] = return $ Bool (x == y)
-eqv [Atom s1, Atom s2] = return $ Bool (s1 == s2)
-eqv [Number n1, Number n2] = return $ Bool (n1 == n2)
-eqv [Character c1, Character c2] = return $ Bool (c1 == c2)
-eqv [List [], List []] = return $ Bool True
+eqv [x, y] = return $ Bool (eqv' [x,y])
 -- there should be cases for pairs, vectors, functions and so on, but that is saved until variable binding is introduced
-eqv [_, _] = return $ Bool False
 eqv badArgList = throwError $ NumArgs 2 badArgList
 
 -- again, equal? from the tutorial coerces non-numeric types such as
