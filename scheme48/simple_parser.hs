@@ -83,11 +83,25 @@ primitives = [
 --               ("||", boolBoolBinOp (||)),
               ("and", boolBoolMultiOp (&&)),
               ("or", boolBoolMultiOp (||)),
+              -- need case insensitive versions 
               ("string=?", strBoolBinOp (==)),
               ("string<?", strBoolBinOp (<)),
               ("string>?", strBoolBinOp (>)),
               ("string<=?", strBoolBinOp (<=)),
               ("string=>?", strBoolBinOp (>=)),
+              ("make-string", makeString),
+{--
+              ("string",
+              ("string-length",
+              ("string-ref",
+              ("string-append",
+              ("substring",
+              ("string->list",
+              ("list->string",
+              ("string-set!", -- not yet
+              ("string-fill!", -- not yet
+              ("string-copy", -- not yet
+--}
               ("+", numericBinOp (+)),
               ("-", numericBinOp (-)),              
               ("*", numericBinOp (*)),
@@ -106,6 +120,12 @@ primitives = [
               ("eqv?", eqv),
               ("equal?", equal)
              ]
+
+makeString :: [LispVal] -> ThrowsError LispVal
+makeString [(Number n)] = return $ String (replicate (fromInteger n) ' ')
+makeString [(Number n),(Character c)] = return $ String (replicate (fromInteger n) c)
+makeString [badArg] = throwError $ TypeMismatch "number" badArg
+makeString badArgList = throwError $ NumArgs 2 badArgList
 
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x:xs)] = return x
