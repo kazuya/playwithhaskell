@@ -90,8 +90,8 @@ primitives = [
               ("string<=?", strBoolBinOp (<=)),
               ("string=>?", strBoolBinOp (>=)),
               ("make-string", makeString),
+              ("string", createString),
 {--
-              ("string",
               ("string-length",
               ("string-ref",
               ("string-append",
@@ -126,6 +126,12 @@ makeString [(Number n)] = return $ String (replicate (fromInteger n) ' ')
 makeString [(Number n),(Character c)] = return $ String (replicate (fromInteger n) c)
 makeString [badArg] = throwError $ TypeMismatch "number" badArg
 makeString badArgList = throwError $ NumArgs 2 badArgList
+
+createString :: [LispVal] -> ThrowsError LispVal
+createString [] = return $ String ""
+createString ((Character c):cs) = do (String tailString) <- createString cs
+                                     return $ String (c:tailString)
+createString (badArg:_) = throwError $ TypeMismatch "character" badArg
 
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x:xs)] = return x
