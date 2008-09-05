@@ -93,8 +93,8 @@ primitives = [
               ("string", createString),
               ("string-length", lengthString),
               ("string-ref", refString),
+              ("string-append", appendString),
 {--
-              ("string-append",
               ("substring",
               ("string->list",
               ("list->string",
@@ -137,6 +137,11 @@ lengthString :: [LispVal] -> ThrowsError LispVal
 lengthString [(String s)] = return $ Number (toInteger $ length s)
 lengthString [badArg] = throwError $ TypeMismatch "string" badArg
 lengthString badArgList = throwError $ NumArgs 1 badArgList
+
+appendString :: [LispVal] -> ThrowsError LispVal
+appendString [(String s0), (String s1)] = return $ String (s0 ++ s1)
+appendString badArgs@[_, _] = throwError $ TypeMismatch "string" (List badArgs)
+appendString badArgList = throwError $ NumArgs 2 badArgList
 
 refString :: [LispVal] -> ThrowsError LispVal
 refString [(String s), (Number n)]
