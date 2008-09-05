@@ -91,8 +91,8 @@ primitives = [
               ("string=>?", strBoolBinOp (>=)),
               ("make-string", makeString),
               ("string", createString),
+              ("string-length", lengthString),
 {--
-              ("string-length",
               ("string-ref",
               ("string-append",
               ("substring",
@@ -132,6 +132,12 @@ createString [] = return $ String ""
 createString ((Character c):cs) = do (String tailString) <- createString cs
                                      return $ String (c:tailString)
 createString (badArg:_) = throwError $ TypeMismatch "character" badArg
+
+lengthString :: [LispVal] -> ThrowsError LispVal
+lengthString [(String s)] = return $ Number (toInteger $ length s)
+lengthString [badArg] = throwError $ TypeMismatch "string" badArg
+lengthString badArgList = throwError $ NumArgs 1 badArgList
+
 
 car :: [LispVal] -> ThrowsError LispVal
 car [List (x:xs)] = return x
