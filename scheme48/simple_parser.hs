@@ -92,8 +92,8 @@ primitives = [
               ("make-string", makeString),
               ("string", createString),
               ("string-length", lengthString),
+              ("string-ref", refString),
 {--
-              ("string-ref",
               ("string-append",
               ("substring",
               ("string->list",
@@ -137,6 +137,15 @@ lengthString :: [LispVal] -> ThrowsError LispVal
 lengthString [(String s)] = return $ Number (toInteger $ length s)
 lengthString [badArg] = throwError $ TypeMismatch "string" badArg
 lengthString badArgList = throwError $ NumArgs 1 badArgList
+
+refString :: [LispVal] -> ThrowsError LispVal
+refString [(String s), (Number n)]
+    = if (fromInteger n >= length s) then throwError $ OutOfRange (Number n)
+      else return $ Character (s !! (fromInteger n))
+refString [badArg, (Number _)] = throwError $ TypeMismatch "string" badArg
+refString [(String _), badArg] = throwError $ TypeMismatch "number" badArg
+refString badArgs@[_, _] = throwError $ TypeMismatch "string and number" (List badArgs)
+refString badArgList = throwError $ NumArgs 2 badArgList
 
 
 car :: [LispVal] -> ThrowsError LispVal
@@ -267,6 +276,7 @@ instance Show LispVal where show = showVal
 
 showVal :: LispVal -> String
 showVal (String contents) = "\"" ++ contents ++ "\""
+showVal (Character c) = "#\\" ++ [c]
 showVal (Atom name) = name
 showVal (Number contents) = show contents
 showVal (Float contents) = show contents
@@ -275,7 +285,6 @@ showVal (Bool False) = "#f"
 showVal (List contents) = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
 showVal (Vector array) = "#(" ++ (unwordsList $ elems array) ++ ")"
-showVal contents = show contents
 
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal
@@ -420,6 +429,7 @@ data LispError = NumArgs Integer [LispVal]
                | BadSpecialForm String LispVal
                | NotFunction String String
                | UnboundVar String String
+               | OutOfRange LispVal
                | Default String
 
 showError :: LispError -> String
@@ -431,6 +441,7 @@ showError (NumArgs expected found) = "Expected " ++ show expected
 showError (TypeMismatch expected found) = "Invalid type: expected " ++ expected
                                           ++ ", found " ++ show found
 showError (Parser parseErr) = "Parse error at " ++ show parseErr
+showError (OutOfRange found) = "argument out of range: " ++ show found
 
 instance Show LispError where show = showError
 
