@@ -94,8 +94,8 @@ primitives = [
               ("string-length", lengthString),
               ("string-ref", refString),
               ("string-append", appendString),
+              ("substring", subString),
 {--
-              ("substring",
               ("string->list",
               ("list->string",
               ("string-set!", -- not yet
@@ -142,6 +142,15 @@ appendString :: [LispVal] -> ThrowsError LispVal
 appendString [(String s0), (String s1)] = return $ String (s0 ++ s1)
 appendString badArgs@[_, _] = throwError $ TypeMismatch "string" (List badArgs)
 appendString badArgList = throwError $ NumArgs 2 badArgList
+
+subString  :: [LispVal] -> ThrowsError LispVal
+subString [(String s), (Number start), (Number end)]
+    | (start > end) = throwError $ Default "end must be greater than or equal to start"
+    | (fromInteger start >= length s) = throwError $ OutOfRange (Number start)
+    | (fromInteger end >= length s) = throwError $ OutOfRange (Number end)
+    | otherwise = return $ String (drop (fromInteger start) $ take (fromInteger end) s)
+subString badArgs@[_, _, _] = throwError $ TypeMismatch "string, number and number" (List badArgs)
+subString badArgList = throwError $ NumArgs 3 badArgList
 
 refString :: [LispVal] -> ThrowsError LispVal
 refString [(String s), (Number n)]
@@ -447,6 +456,7 @@ showError (TypeMismatch expected found) = "Invalid type: expected " ++ expected
                                           ++ ", found " ++ show found
 showError (Parser parseErr) = "Parse error at " ++ show parseErr
 showError (OutOfRange found) = "argument out of range: " ++ show found
+showError (Default message) = "error: " ++ message
 
 instance Show LispError where show = showError
 
