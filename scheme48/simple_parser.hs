@@ -95,9 +95,9 @@ primitives = [
               ("string-ref", refString),
               ("string-append", appendString),
               ("substring", subString),
+              ("string->list", string2list),
+              ("list->string", list2string),
 {--
-              ("string->list",
-              ("list->string",
               ("string-set!", -- not yet
               ("string-fill!", -- not yet
               ("string-copy", -- not yet
@@ -120,6 +120,21 @@ primitives = [
               ("eqv?", eqv),
               ("equal?", equal)
              ]
+
+string2list :: [LispVal] -> ThrowsError LispVal
+string2list [(String s)] = return $ List (map (\c -> Character c) s)
+string2list [badArg] = throwError $ TypeMismatch "string" badArg
+string2list badArgList = throwError $ NumArgs 1 badArgList
+
+list2string :: [LispVal] -> ThrowsError LispVal
+list2string [arg@(List s)] = do case foldM toCharacter [] (reverse s) of
+                                  Just ss -> return $ String $ reverse ss
+                                  Nothing -> throwError $ TypeMismatch "list of characters" arg
+    where toCharacter :: [Char] -> LispVal -> Maybe [Char]
+          toCharacter acc (Character c) = Just (c:acc)
+          toCharacter _ _ = Nothing
+list2string [badArg] = throwError $ TypeMismatch "list" badArg
+list2string badArgList = throwError $ NumArgs 1 badArgList
 
 makeString :: [LispVal] -> ThrowsError LispVal
 makeString [(Number n)] = return $ String (replicate (fromInteger n) ' ')
