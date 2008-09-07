@@ -89,11 +89,11 @@ primitives = [
               ("string>?", strBoolBinOp (>)),
               ("string<=?", strBoolBinOp (<=)),
               ("string=>?", strBoolBinOp (>=)),
-              ("make-string", makeString),
-              ("string", createString),
-              ("string-length", lengthString),
-              ("string-ref", refString),
-              ("string-append", appendString),
+              ("make-string", make_string),
+              ("string", create_string),
+              ("string-length", string_length),
+              ("string-ref", string_ref),
+              ("string-append", string_append),
               ("substring", subString),
               ("string->list", string2list),
               ("list->string", list2string),
@@ -136,27 +136,27 @@ list2string [arg@(List s)] = do case foldM toCharacter [] (reverse s) of
 list2string [badArg] = throwError $ TypeMismatch "list" badArg
 list2string badArgList = throwError $ NumArgs 1 badArgList
 
-makeString :: [LispVal] -> ThrowsError LispVal
-makeString [(Number n)] = return $ String (replicate (fromInteger n) ' ')
-makeString [(Number n),(Character c)] = return $ String (replicate (fromInteger n) c)
-makeString [badArg] = throwError $ TypeMismatch "number" badArg
-makeString badArgList = throwError $ NumArgs 2 badArgList
+make_string :: [LispVal] -> ThrowsError LispVal
+make_string [(Number n)] = return $ String (replicate (fromInteger n) ' ')
+make_string [(Number n),(Character c)] = return $ String (replicate (fromInteger n) c)
+make_string [badArg] = throwError $ TypeMismatch "number" badArg
+make_string badArgList = throwError $ NumArgs 2 badArgList
 
-createString :: [LispVal] -> ThrowsError LispVal
-createString [] = return $ String ""
-createString ((Character c):cs) = do (String tailString) <- createString cs
-                                     return $ String (c:tailString)
-createString (badArg:_) = throwError $ TypeMismatch "character" badArg
+create_string :: [LispVal] -> ThrowsError LispVal
+create_string [] = return $ String ""
+create_string ((Character c):cs) = do (String tailString) <- create_string cs
+                                      return $ String (c:tailString)
+create_string (badArg:_) = throwError $ TypeMismatch "character" badArg
 
-lengthString :: [LispVal] -> ThrowsError LispVal
-lengthString [(String s)] = return $ Number (toInteger $ length s)
-lengthString [badArg] = throwError $ TypeMismatch "string" badArg
-lengthString badArgList = throwError $ NumArgs 1 badArgList
+string_length :: [LispVal] -> ThrowsError LispVal
+string_length [(String s)] = return $ Number (toInteger $ length s)
+string_length [badArg] = throwError $ TypeMismatch "string" badArg
+string_length badArgList = throwError $ NumArgs 1 badArgList
 
-appendString :: [LispVal] -> ThrowsError LispVal
-appendString [(String s0), (String s1)] = return $ String (s0 ++ s1)
-appendString badArgs@[_, _] = throwError $ TypeMismatch "string" (List badArgs)
-appendString badArgList = throwError $ NumArgs 2 badArgList
+string_append :: [LispVal] -> ThrowsError LispVal
+string_append [(String s0), (String s1)] = return $ String (s0 ++ s1)
+string_append badArgs@[_, _] = throwError $ TypeMismatch "string" (List badArgs)
+string_append badArgList = throwError $ NumArgs 2 badArgList
 
 subString  :: [LispVal] -> ThrowsError LispVal
 subString [(String s), (Number start), (Number end)]
@@ -167,14 +167,14 @@ subString [(String s), (Number start), (Number end)]
 subString badArgs@[_, _, _] = throwError $ TypeMismatch "string, number and number" (List badArgs)
 subString badArgList = throwError $ NumArgs 3 badArgList
 
-refString :: [LispVal] -> ThrowsError LispVal
-refString [(String s), (Number n)]
+string_ref :: [LispVal] -> ThrowsError LispVal
+string_ref [(String s), (Number n)]
     = if (fromInteger n >= length s) then throwError $ OutOfRange (Number n)
       else return $ Character (s !! (fromInteger n))
-refString [badArg, (Number _)] = throwError $ TypeMismatch "string" badArg
-refString [(String _), badArg] = throwError $ TypeMismatch "number" badArg
-refString badArgs@[_, _] = throwError $ TypeMismatch "string and number" (List badArgs)
-refString badArgList = throwError $ NumArgs 2 badArgList
+string_ref [badArg, (Number _)] = throwError $ TypeMismatch "string" badArg
+string_ref [(String _), badArg] = throwError $ TypeMismatch "number" badArg
+string_ref badArgs@[_, _] = throwError $ TypeMismatch "string and number" (List badArgs)
+string_ref badArgList = throwError $ NumArgs 2 badArgList
 
 
 car :: [LispVal] -> ThrowsError LispVal
