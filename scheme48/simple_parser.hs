@@ -301,23 +301,6 @@ unpackString :: LispVal -> ThrowsError String
 unpackString (String s) = return s
 unpackString notString = throwError $ TypeMismatch "string" notString
 
-instance Show LispVal where show = showVal
-
-showVal :: LispVal -> String
-showVal (String contents) = "\"" ++ contents ++ "\""
-showVal (Character c) = "#\\" ++ [c]
-showVal (Atom name) = name
-showVal (Number contents) = show contents
-showVal (Float contents) = show contents
-showVal (Bool True) = "#t"
-showVal (Bool False) = "#f"
-showVal (List contents) = "(" ++ unwordsList contents ++ ")"
-showVal (DottedList head tail) = "(" ++ unwordsList head ++ " . " ++ showVal tail ++ ")"
-showVal (Vector array) = "#(" ++ (unwordsList $ elems array) ++ ")"
-
-unwordsList :: [LispVal] -> String
-unwordsList = unwords . map showVal
-
 parseVector :: Parser LispVal
 parseVector = do
   string "#("

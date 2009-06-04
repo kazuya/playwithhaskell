@@ -6,7 +6,7 @@ import Data.List
 import Defs
 import Error
 import Parser
-import Show
+import Text.Show
 import Primitives
 
 eval :: LispVal -> ThrowsError LispVal

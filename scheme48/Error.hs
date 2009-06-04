@@ -3,7 +3,7 @@ module Error(throwError, LispError(..), ThrowsError, extractValue, trapError) wh
 import Text.ParserCombinators.Parsec (ParseError)
 import Control.Monad.Error
 import Defs
-import Show
+import Text.Show
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
